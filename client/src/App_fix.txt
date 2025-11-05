@@ -1,0 +1,63 @@
+Replace this part in TenantDashboard:
+
+  const fetchProperties = async () => {
+    try {
+      let url = `${API}/api/properties`;
+      const params = new URLSearchParams();
+      if (city) params.append('city', city);
+      if (minPrice) params.append('minPrice', minPrice);
+      if (maxPrice) params.append('maxPrice', maxPrice);
+      if (rooms) params.append('rooms', rooms);
+      
+      if (params.toString()) url += '?' + params.toString();
+      
+      const response = await axios.get(url);
+      setProperties(response.data);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+With this:
+
+  const fetchProperties = async (filterCity = city, filterMinPrice = minPrice, filterMaxPrice = maxPrice, filterRooms = rooms) => {
+    try {
+      let url = `${API}/api/properties`;
+      const params = new URLSearchParams();
+      if (filterCity) params.append('city', filterCity);
+      if (filterMinPrice) params.append('minPrice', filterMinPrice);
+      if (filterMaxPrice) params.append('maxPrice', filterMaxPrice);
+      if (filterRooms) params.append('rooms', filterRooms);
+      
+      if (params.toString()) url += '?' + params.toString();
+      console.log('Fetching from:', url); // Debug log
+      
+      const response = await axios.get(url);
+      setProperties(response.data);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+Also update handleSearch:
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    fetchProperties(city, minPrice, maxPrice, rooms);
+  };
+
+And handleReset:
+
+  const handleReset = () => {
+    setCity('');
+    setMinPrice('');
+    setMaxPrice('');
+    setRooms('');
+    setLoading(true);
+    fetchProperties('', '', '', '');
+  };
