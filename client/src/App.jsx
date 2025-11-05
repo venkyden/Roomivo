@@ -256,13 +256,69 @@ function RegisterPage({ setUser }) {
 }
 
 function TenantDashboard({ user }) {
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const fetchProperties = async () => {
+    try {
+      const response = await axios.get(`${API}/api/properties`);
+      setProperties(response.data);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '50px' }}>Loading properties...</div>;
+  }
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
-      <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '20px' }}>Welcome, {user.firstName}! 👋</h1>
-      <div style={{ backgroundColor: '#dbeafe', border: '1px solid #60a5fa', padding: '20px', borderRadius: '4px', marginBottom: '30px', borderLeft: '4px solid #3b82f6' }}>
-        <p style={{ fontWeight: '600', color: '#1e3a8a' }}>⚡ Quick Tip</p>
-        <p style={{ color: '#1e40af' }}>Start browsing verified properties or complete your profile!</p>
-      </div>
+      <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '10px' }}>Welcome, {user.firstName}! 👋</h1>
+      <p style={{ fontSize: '18px', color: '#666', marginBottom: '30px' }}>Browse available properties</p>
+
+      {properties.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+          <p style={{ fontSize: '18px', color: '#666' }}>No properties available yet. Check back soon!</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+          {properties.map(property => (
+            <div key={property._id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>{property.title}</h3>
+              <p style={{ color: '#666', marginBottom: '10px', fontSize: '16px' }}>📍 {property.city}</p>
+              <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#16a34a', marginBottom: '10px' }}>€{property.price}/month</p>
+              <p style={{ color: '#666', marginBottom: '10px' }}>🛏️ {property.rooms} rooms</p>
+              <p style={{ color: '#666', marginBottom: '15px', fontSize: '14px', lineHeight: '1.5' }}>{property.description}</p>
+              
+              {property.amenities && property.amenities.length > 0 && (
+                <div style={{ marginBottom: '15px' }}>
+                  <p style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px' }}>✨ Amenities:</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {property.amenities.map((amenity, idx) => (
+                      <span key={idx} style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500' }}>
+                        {amenity}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <button
+                style={{ width: '100%', padding: '10px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+              >
+                📧 Contact Landlord
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
