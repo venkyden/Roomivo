@@ -258,6 +258,10 @@ function RegisterPage({ setUser }) {
 function TenantDashboard({ user }) {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [city, setCity] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [rooms, setRooms] = useState('');
 
   useEffect(() => {
     fetchProperties();
@@ -265,7 +269,16 @@ function TenantDashboard({ user }) {
 
   const fetchProperties = async () => {
     try {
-      const response = await axios.get(`${API}/api/properties`);
+      let url = `${API}/api/properties`;
+      const params = new URLSearchParams();
+      if (city) params.append('city', city);
+      if (minPrice) params.append('minPrice', minPrice);
+      if (maxPrice) params.append('maxPrice', maxPrice);
+      if (rooms) params.append('rooms', rooms);
+      
+      if (params.toString()) url += '?' + params.toString();
+      
+      const response = await axios.get(url);
       setProperties(response.data);
     } catch (error) {
       console.error('Error fetching properties:', error);
@@ -274,7 +287,22 @@ function TenantDashboard({ user }) {
     }
   };
 
-  if (loading) {
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    fetchProperties();
+  };
+
+  const handleReset = () => {
+    setCity('');
+    setMinPrice('');
+    setMaxPrice('');
+    setRooms('');
+    setLoading(true);
+    fetchProperties();
+  };
+
+  if (loading && properties.length === 0) {
     return <div style={{ textAlign: 'center', padding: '50px' }}>Loading properties...</div>;
   }
 
@@ -283,41 +311,113 @@ function TenantDashboard({ user }) {
       <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '10px' }}>Welcome, {user.firstName}! 👋</h1>
       <p style={{ fontSize: '18px', color: '#666', marginBottom: '30px' }}>Browse available properties</p>
 
+      {/* Search Filters */}
+      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '20px' }}>🔍 Search Properties</h2>
+        <form onSubmit={handleSearch}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>City</label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="e.g., Nantes"
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>Min Price (€)</label>
+              <input
+                type="number"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                placeholder="e.g., 300"
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>Max Price (€)</label>
+              <input
+                type="number"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                placeholder="e.g., 1000"
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>Rooms</label>
+              <input
+                type="number"
+                value={rooms}
+                onChange={(e) => setRooms(e.target.value)}
+                placeholder="e.g., 2"
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="submit"
+              style={{ flex: 1, padding: '12px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+            >
+              🔍 Search
+            </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              style={{ flex: 1, padding: '12px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+            >
+              ↺ Reset
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Properties List */}
       {properties.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
-          <p style={{ fontSize: '18px', color: '#666' }}>No properties available yet. Check back soon!</p>
+          <p style={{ fontSize: '18px', color: '#666' }}>No properties found. Try adjusting your filters!</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-          {properties.map(property => (
-            <div key={property._id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>{property.title}</h3>
-              <p style={{ color: '#666', marginBottom: '10px', fontSize: '16px' }}>📍 {property.city}</p>
-              <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#16a34a', marginBottom: '10px' }}>€{property.price}/month</p>
-              <p style={{ color: '#666', marginBottom: '10px' }}>🛏️ {property.rooms} rooms</p>
-              <p style={{ color: '#666', marginBottom: '15px', fontSize: '14px', lineHeight: '1.5' }}>{property.description}</p>
-              
-              {property.amenities && property.amenities.length > 0 && (
-                <div style={{ marginBottom: '15px' }}>
-                  <p style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px' }}>✨ Amenities:</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {property.amenities.map((amenity, idx) => (
-                      <span key={idx} style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500' }}>
-                        {amenity}
-                      </span>
-                    ))}
+        <>
+          <p style={{ color: '#666', marginBottom: '20px', fontSize: '16px' }}>Found <strong>{properties.length}</strong> properties</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+            {properties.map(property => (
+              <div key={property._id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>{property.title}</h3>
+                <p style={{ color: '#666', marginBottom: '10px', fontSize: '16px' }}>📍 {property.city}</p>
+                <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#16a34a', marginBottom: '10px' }}>€{property.price}/month</p>
+                <p style={{ color: '#666', marginBottom: '10px' }}>🛏️ {property.rooms} rooms</p>
+                <p style={{ color: '#666', marginBottom: '15px', fontSize: '14px', lineHeight: '1.5' }}>{property.description}</p>
+                
+                {property.amenities && property.amenities.length > 0 && (
+                  <div style={{ marginBottom: '15px' }}>
+                    <p style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px' }}>✨ Amenities:</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {property.amenities.map((amenity, idx) => (
+                        <span key={idx} style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500' }}>
+                          {amenity}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              <button
-                style={{ width: '100%', padding: '10px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
-              >
-                📧 Contact Landlord
-              </button>
-            </div>
-          ))}
-        </div>
+                )}
+                
+                <button
+                  style={{ width: '100%', padding: '10px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+                >
+                  📧 Contact Landlord
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
