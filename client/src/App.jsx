@@ -264,20 +264,34 @@ function TenantDashboard({ user }) {
   const [rooms, setRooms] = useState('');
 
   useEffect(() => {
-    fetchProperties();
+    loadAllProperties();
   }, []);
 
-  const fetchProperties = async () => {
+  const loadAllProperties = async () => {
     try {
+      const response = await axios.get(`${API}/api/properties`);
+      setProperties(response.data);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProperties = async (filterCity, filterMinPrice, filterMaxPrice, filterRooms) => {
+    try {
+      setLoading(true);
       let url = `${API}/api/properties`;
-      const params = new URLSearchParams();
-      if (city) params.append('city', city);
-      if (minPrice) params.append('minPrice', minPrice);
-      if (maxPrice) params.append('maxPrice', maxPrice);
-      if (rooms) params.append('rooms', rooms);
+      const params = [];
       
-      if (params.toString()) url += '?' + params.toString();
+      if (filterCity) params.push(`city=${encodeURIComponent(filterCity)}`);
+      if (filterMinPrice) params.push(`minPrice=${filterMinPrice}`);
+      if (filterMaxPrice) params.push(`maxPrice=${filterMaxPrice}`);
+      if (filterRooms) params.push(`rooms=${filterRooms}`);
       
+      if (params.length > 0) url += '?' + params.join('&');
+      
+      console.log('Fetching from:', url);
       const response = await axios.get(url);
       setProperties(response.data);
     } catch (error) {
@@ -289,8 +303,7 @@ function TenantDashboard({ user }) {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setLoading(true);
-    fetchProperties();
+    fetchProperties(city, minPrice, maxPrice, rooms);
   };
 
   const handleReset = () => {
@@ -298,8 +311,7 @@ function TenantDashboard({ user }) {
     setMinPrice('');
     setMaxPrice('');
     setRooms('');
-    setLoading(true);
-    fetchProperties();
+    loadAllProperties();
   };
 
   if (loading && properties.length === 0) {
