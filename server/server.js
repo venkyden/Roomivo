@@ -99,7 +99,9 @@ app.post('/api/properties', authenticateToken, async (req, res) => {
   res.status(201).json(property);
 });
 
-app.get('/health', (req, res) => res.json({ status: '✅ Running' }));
+app.get('/', (req, res) => res.json({ message: 'Roomivo API is running', status: 'ok' }));
+
+app.get('/api/health', (req, res) => res.json({ status: '✅ Running' }));
 
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
