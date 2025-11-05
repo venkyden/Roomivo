@@ -4,8 +4,6 @@ import axios from 'axios';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-
-
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -270,20 +268,203 @@ function TenantDashboard({ user }) {
 }
 
 function LandlordDashboard({ user }) {
+  const [properties, setProperties] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    city: '',
+    price: '',
+    rooms: '',
+    amenities: ''
+  });
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const fetchProperties = async () => {
+    try {
+      const response = await axios.get(`${API}/api/my-properties`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProperties(response.data);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddProperty = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const amenitiesArray = formData.amenities.split(',').map(a => a.trim()).filter(a => a);
+      await axios.post(`${API}/api/properties`, {
+        ...formData,
+        price: parseFloat(formData.price),
+        rooms: parseInt(formData.rooms),
+        amenities: amenitiesArray
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFormData({ title: '', description: '', city: '', price: '', rooms: '', amenities: '' });
+      setShowForm(false);
+      fetchProperties();
+    } catch (error) {
+      alert('Error adding property: ' + error.response?.data?.error || error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProperty = async (propertyId) => {
+    if (!window.confirm('Are you sure?')) return;
+    try {
+      await axios.delete(`${API}/api/properties/${propertyId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchProperties();
+    } catch (error) {
+      alert('Error deleting property');
+    }
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
       <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '20px' }}>Landlord Dashboard</h1>
-      <button style={{ backgroundColor: '#16a34a', color: 'white', padding: '10px 20px', borderRadius: '4px', fontWeight: '600', cursor: 'pointer', border: 'none', marginBottom: '20px' }}>
-        ➕ Add Property
+      
+      <button
+        onClick={() => setShowForm(!showForm)}
+        style={{ backgroundColor: '#16a34a', color: 'white', padding: '10px 20px', borderRadius: '4px', fontWeight: '600', cursor: 'pointer', border: 'none', marginBottom: '20px' }}
+      >
+        {showForm ? '❌ Close' : '➕ Add Property'}
       </button>
-      <div style={{ backgroundColor: '#eff6ff', padding: '20px', borderRadius: '4px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '20px' }}>📊 Your Statistics</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-          <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '4px' }}>
-            <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#2563eb' }}>0</p>
-            <p style={{ color: '#666' }}>Properties Listed</p>
-          </div>
+
+      {showForm && (
+        <div style={{ backgroundColor: '#f0fdf4', padding: '30px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #bbf7d0' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>Add New Property</h2>
+          <form onSubmit={handleAddProperty}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px' }}>Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Cozy 2BHK in downtown"
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px' }}>City</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Nantes"
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px' }}>Price (€/month)</label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 500"
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px' }}>Rooms</label>
+                <input
+                  type="number"
+                  name="rooms"
+                  value={formData.rooms}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 2"
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px' }}>Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Describe your property..."
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', minHeight: '100px', fontFamily: 'inherit' }}
+                required
+              />
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px' }}>Amenities (comma-separated)</label>
+              <input
+                type="text"
+                name="amenities"
+                value={formData.amenities}
+                onChange={handleInputChange}
+                placeholder="e.g., WiFi, Kitchen, Parking, Balcony"
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ marginTop: '20px', width: '100%', padding: '12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', fontWeight: '600', cursor: 'pointer' }}
+            >
+              {loading ? 'Adding...' : 'Add Property'}
+            </button>
+          </form>
         </div>
+      )}
+
+      <div style={{ backgroundColor: '#eff6ff', padding: '20px', borderRadius: '4px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '20px' }}>📊 Your Properties</h2>
+        
+        {properties.length === 0 ? (
+          <p style={{ color: '#666' }}>No properties yet. Click "Add Property" to get started!</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+            {properties.map(property => (
+              <div key={property._id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '4px', border: '1px solid #e5e7eb' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>{property.title}</h3>
+                <p style={{ color: '#666', marginBottom: '10px' }}>📍 {property.city}</p>
+                <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#16a34a', marginBottom: '10px' }}>€{property.price}/month</p>
+                <p style={{ color: '#666', marginBottom: '10px' }}>🛏️ {property.rooms} rooms</p>
+                <p style={{ color: '#666', marginBottom: '10px', fontSize: '14px' }}>{property.description}</p>
+                
+                <button
+                  onClick={() => handleDeleteProperty(property._id)}
+                  style={{ width: '100%', padding: '8px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+                >
+                  🗑️ Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
