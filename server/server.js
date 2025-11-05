@@ -92,7 +92,15 @@ app.post('/api/auth/login', async (req, res) => {
 // PROPERTY ROUTES
 app.get('/api/properties', async (req, res) => {
   try {
-    const properties = await Property.find().limit(50);
+    const { city, minPrice, maxPrice, rooms } = req.query;
+    const filter = {};
+    
+    if (city) filter.city = { $regex: city, $options: 'i' };
+    if (minPrice) filter.price = { $gte: parseFloat(minPrice) };
+    if (maxPrice) filter.price = { ...filter.price, $lte: parseFloat(maxPrice) };
+    if (rooms) filter.rooms = parseInt(rooms);
+    
+    const properties = await Property.find(filter).limit(50);
     res.json(properties);
   } catch (error) {
     res.status(500).json({ error: error.message });
