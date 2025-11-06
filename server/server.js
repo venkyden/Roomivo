@@ -187,3 +187,89 @@ const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
   console.log(`🚀 Backend running on http://localhost:${PORT}`);
 });
+
+// ============================================
+// MESSAGING ROUTES
+// ============================================
+
+// Create message schema
+const messageSchema = new mongoose.Schema({
+  tenantId: String,
+  landlordId: String,
+  propertyId: String,
+  message: String,
+  senderRole: String, // 'tenant' or 'landlord'
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Message = mongoose.model('Message', messageSchema);
+
+// Send message
+app.post('/api/messages', authenticateToken, async (req, res) => {
+  try {
+    const { tenantId, landlordId, propertyId, message } = req.body;
+    const newMessage = new Message({
+      tenantId,
+      landlordId,
+      propertyId,
+      message,
+      senderRole: req.user.role
+    });
+    await newMessage.save();
+    res.json(newMessage);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get conversation between tenant and landlord for a property
+app.get('/api/messages/:propertyId/:otherUserId', authenticateToken, async (req, res) => {
+  try {
+    const { propertyId, otherUserId } = req.params;
+    const userId = req.user.id;
+
+    const messages = await Message.find({
+      propertyId,
+      $or: [
+        { tenantId: userId, landlordId: otherUserId },
+        { tenantId: otherUserId, landlordId: userId }
+      ]
+    }).sort({ createdAt: 1 });
+
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all conversations for a user
+app.get('/api/messages/conversations', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const messages = await Message.find({
+      $or: [{ tenantId: userId }, { landlordId: userId }]
+    }).sort({ createdAt: -1 });
+
+    // Group by property and other user
+    const conversations = {};
+    messages.forEach(msg => {
+      const otherUserId = msg.tenantId === userId ? msg.landlordId : msg.tenantId;
+      const key = `${msg.propertyId}-${otherUserId}`;
+      if (!conversations[key]) {
+        conversations[key] = {
+          propertyId: msg.propertyId,
+          otherUserId,
+          lastMessage: msg.message,
+          lastMessageTime: msg.createdAt,
+          senderRole: msg.senderRole
+        };
+      }
+    });
+
+    res.json(Object.values(conversations));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+

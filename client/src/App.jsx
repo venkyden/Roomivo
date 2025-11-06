@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// Set longer timeout for axios
+axios.defaults.timeout = 30000; // 30 seconds
+
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
+// Configure axios with CORS headers
+axios.defaults.headers.common['Content-Type'] = 'application/json';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -54,7 +60,9 @@ function App() {
           <Route path="/login" element={!user ? <LoginPage setUser={setUser} /> : <Navigate to="/" />} />
           <Route path="/register" element={!user ? <RegisterPage setUser={setUser} /> : <Navigate to="/" />} />
           <Route path="/tenant" element={user?.role === 'tenant' ? <TenantDashboard user={user} /> : <Navigate to="/" />} />
+          <Route path="/tenant/property/:id" element={user?.role === 'tenant' ? <PropertyDetailsPage user={user} /> : <Navigate to="/" />} />
           <Route path="/landlord" element={user?.role === 'landlord' ? <LandlordDashboard user={user} /> : <Navigate to="/" />} />
+          <Route path="/messages" element={user ? <MessagesPage user={user} /> : <Navigate to="/" />} />
         </Routes>
       </div>
     </Router>
@@ -117,14 +125,20 @@ function LoginPage({ setUser }) {
     e.preventDefault();
     setLoading(true);
     setError('');
+    
     try {
-      const response = await axios.post(`${API}/api/auth/login`, { email, password });
+      const response = await axios.post(`${API}/api/auth/login`, 
+        { email, password },
+        { timeout: 30000 }
+      );
+      
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       setUser(response.data.user);
       navigate(response.data.user.role === 'tenant' ? '/tenant' : '/landlord');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      console.error('Login error:', err);
+      setError(err.response?.data?.error || err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -142,7 +156,7 @@ function LoginPage({ setUser }) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
+            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
             required
             disabled={loading}
           />
@@ -154,7 +168,7 @@ function LoginPage({ setUser }) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
+            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}
             required
             disabled={loading}
           />
@@ -217,27 +231,27 @@ function RegisterPage({ setUser }) {
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>First Name</label>
-          <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }} required />
+          <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} required />
         </div>
 
         <div style={{ marginBottom: '15px' }}>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>Last Name</label>
-          <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }} required />
+          <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} required />
         </div>
 
         <div style={{ marginBottom: '15px' }}>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }} required />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} required />
         </div>
 
         <div style={{ marginBottom: '15px' }}>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }} required />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} required />
         </div>
 
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', fontWeight: '600', marginBottom: '5px', color: '#333' }}>I am a...</label>
-          <select value={role} onChange={(e) => setRole(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}>
+          <select value={role} onChange={(e) => setRole(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}>
             <option value="tenant">Tenant (Looking for home)</option>
             <option value="landlord">Landlord (Listing property)</option>
           </select>
@@ -262,6 +276,7 @@ function TenantDashboard({ user }) {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [rooms, setRooms] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadAllProperties();
@@ -291,7 +306,6 @@ function TenantDashboard({ user }) {
       
       if (params.length > 0) url += '?' + params.join('&');
       
-      console.log('Fetching from:', url);
       const response = await axios.get(url);
       setProperties(response.data);
     } catch (error) {
@@ -320,8 +334,18 @@ function TenantDashboard({ user }) {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
-      <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '10px' }}>Welcome, {user.firstName}! 👋</h1>
-      <p style={{ fontSize: '18px', color: '#666', marginBottom: '30px' }}>Browse available properties</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <div>
+          <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '10px' }}>Welcome, {user.firstName}! 👋</h1>
+          <p style={{ fontSize: '18px', color: '#666' }}>Browse available properties</p>
+        </div>
+        <button
+          onClick={() => navigate('/messages')}
+          style={{ padding: '10px 20px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+        >
+          💬 Messages
+        </button>
+      </div>
 
       {/* Search Filters */}
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
@@ -335,7 +359,7 @@ function TenantDashboard({ user }) {
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="e.g., Nantes"
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -346,7 +370,7 @@ function TenantDashboard({ user }) {
                 value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
                 placeholder="e.g., 300"
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -357,7 +381,7 @@ function TenantDashboard({ user }) {
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
                 placeholder="e.g., 1000"
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -368,7 +392,7 @@ function TenantDashboard({ user }) {
                 value={rooms}
                 onChange={(e) => setRooms(e.target.value)}
                 placeholder="e.g., 2"
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
               />
             </div>
           </div>
@@ -401,7 +425,11 @@ function TenantDashboard({ user }) {
           <p style={{ color: '#666', marginBottom: '20px', fontSize: '16px' }}>Found <strong>{properties.length}</strong> properties</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
             {properties.map(property => (
-              <div key={property._id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <div key={property._id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', transition: 'transform 0.2s' }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                onClick={() => navigate(`/tenant/property/${property._id}`)}
+              >
                 <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>{property.title}</h3>
                 <p style={{ color: '#666', marginBottom: '10px', fontSize: '16px' }}>📍 {property.city}</p>
                 <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#16a34a', marginBottom: '10px' }}>€{property.price}/month</p>
@@ -422,14 +450,190 @@ function TenantDashboard({ user }) {
                 )}
                 
                 <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/tenant/property/${property._id}`);
+                  }}
                   style={{ width: '100%', padding: '10px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
                 >
-                  📧 Contact Landlord
+                  👁️ View Details
                 </button>
               </div>
             ))}
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+function PropertyDetailsPage({ user }) {
+  const pathParts = window.location.pathname.split('/');
+  const id = pathParts[pathParts.length - 1];
+  const [property, setProperty] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    const fetchProperty = async () => {
+      try {
+        const response = await axios.get(`${API}/api/properties`);
+        const prop = response.data.find(p => p._id === id);
+        setProperty(prop);
+      } catch (error) {
+        console.error('Error fetching property:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperty();
+  }, [id]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!message.trim() || !property) return;
+
+    setSending(true);
+    try {
+      await axios.post(
+        `${API}/api/messages`,
+        {
+          tenantId: user.id,
+          landlordId: property.landlordId,
+          propertyId: property._id,
+          message: message.trim()
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessage('');
+      alert('Message sent to landlord!');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>;
+  if (!property) return <div style={{ textAlign: 'center', padding: '50px' }}>Property not found</div>;
+
+  return (
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 20px' }}>
+      <button
+        onClick={() => navigate('/tenant')}
+        style={{ marginBottom: '20px', padding: '8px 16px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+      >
+        ← Back to Properties
+      </button>
+
+      <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+        <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '10px' }}>{property.title}</h1>
+        <p style={{ fontSize: '18px', color: '#666', marginBottom: '20px' }}>📍 {property.city}</p>
+        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#16a34a', marginBottom: '20px' }}>€{property.price}/month</p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+          <div>
+            <p style={{ fontWeight: '600', color: '#666' }}>🛏️ Rooms</p>
+            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{property.rooms}</p>
+          </div>
+          <div>
+            <p style={{ fontWeight: '600', color: '#666' }}>📅 Listed</p>
+            <p style={{ fontSize: '14px' }}>{new Date(property.createdAt).toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '30px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>Description</h2>
+          <p style={{ color: '#666', lineHeight: '1.6', fontSize: '16px' }}>{property.description}</p>
+        </div>
+
+        {property.amenities && property.amenities.length > 0 && (
+          <div style={{ marginBottom: '30px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '15px' }}>✨ Amenities</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {property.amenities.map((amenity, idx) => (
+                <span key={idx} style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '8px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '500' }}>
+                  {amenity}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ backgroundColor: '#f0fdf4', padding: '20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #bbf7d0' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '15px' }}>💬 Contact Landlord</h2>
+          <form onSubmit={handleSendMessage}>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Write your inquiry here..."
+              style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', minHeight: '100px', fontFamily: 'inherit', marginBottom: '15px', boxSizing: 'border-box' }}
+              required
+            />
+            <button
+              type="submit"
+              disabled={sending}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+            >
+              {sending ? 'Sending...' : '📧 Send Inquiry'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MessagesPage({ user }) {
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const token = localStorage.getItem('token');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchConversations();
+  }, []);
+
+  const fetchConversations = async () => {
+    try {
+      const response = await axios.get(`${API}/api/messages/conversations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setConversations(response.data);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Loading conversations...</div>;
+
+  return (
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 20px' }}>
+      <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '30px' }}>💬 Messages</h1>
+
+      {conversations.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+          <p style={{ fontSize: '18px', color: '#666' }}>No messages yet. Start by contacting a landlord!</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {conversations.map((conv, idx) => (
+            <div key={idx} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer' }}
+              onClick={() => navigate(`/tenant/property/${conv.propertyId}`)}
+            >
+              <p style={{ fontWeight: '600', marginBottom: '5px' }}>Property: {conv.propertyId}</p>
+              <p style={{ color: '#666', marginBottom: '10px' }}>With: {conv.otherUserId}</p>
+              <p style={{ color: '#666', fontSize: '14px' }}>Latest: {conv.lastMessage}</p>
+              <p style={{ color: '#999', fontSize: '12px', marginTop: '5px' }}>{new Date(conv.lastMessageTime).toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -528,7 +732,7 @@ function LandlordDashboard({ user }) {
                   value={formData.title}
                   onChange={handleInputChange}
                   placeholder="e.g., Cozy 2BHK in downtown"
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
                   required
                 />
               </div>
@@ -541,7 +745,7 @@ function LandlordDashboard({ user }) {
                   value={formData.city}
                   onChange={handleInputChange}
                   placeholder="e.g., Nantes"
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
                   required
                 />
               </div>
@@ -554,7 +758,7 @@ function LandlordDashboard({ user }) {
                   value={formData.price}
                   onChange={handleInputChange}
                   placeholder="e.g., 500"
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
                   required
                 />
               </div>
@@ -567,7 +771,7 @@ function LandlordDashboard({ user }) {
                   value={formData.rooms}
                   onChange={handleInputChange}
                   placeholder="e.g., 2"
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
                   required
                 />
               </div>
@@ -580,7 +784,7 @@ function LandlordDashboard({ user }) {
                 value={formData.description}
                 onChange={handleInputChange}
                 placeholder="Describe your property..."
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', minHeight: '100px', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', minHeight: '100px', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 required
               />
             </div>
@@ -593,7 +797,7 @@ function LandlordDashboard({ user }) {
                 value={formData.amenities}
                 onChange={handleInputChange}
                 placeholder="e.g., WiFi, Kitchen, Parking, Balcony"
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
               />
             </div>
 
