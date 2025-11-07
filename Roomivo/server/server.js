@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import imageRoutes from './routes/images.js';
 
+
 dotenv.config();
 
 const app = express();
@@ -56,6 +57,7 @@ const propertySchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+
 const User = mongoose.model('User', userSchema);
 const Property = mongoose.model('Property', propertySchema);
 
@@ -69,6 +71,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// AUTH ROUTES
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
@@ -96,14 +99,17 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// PROPERTY ROUTES
 app.get('/api/properties', async (req, res) => {
   try {
     const { city, minPrice, maxPrice, rooms } = req.query;
     const filter = {};
+    
     if (city) filter.city = { $regex: city, $options: 'i' };
     if (minPrice) filter.price = { $gte: parseFloat(minPrice) };
     if (maxPrice) filter.price = { ...filter.price, $lte: parseFloat(maxPrice) };
     if (rooms) filter.rooms = parseInt(rooms);
+    
     const properties = await Property.find(filter).limit(50);
     res.json(properties);
   } catch (error) {
@@ -143,18 +149,14 @@ app.post('/api/properties', authenticateToken, async (req, res) => {
       amenities: amenities || [],
       images: images || []
     });
-    await property.save();
-    res.status(201).json(property);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+
 
 app.put('/api/properties/:id', authenticateToken, async (req, res) => {
   try {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ error: 'Property not found' });
     if (property.landlordId !== req.user.id) return res.status(403).json({ error: 'Unauthorized' });
+    
     const { title, description, city, price, rooms, amenities, images } = req.body;
     property.title = title || property.title;
     property.description = description || property.description;
@@ -163,18 +165,14 @@ app.put('/api/properties/:id', authenticateToken, async (req, res) => {
     property.rooms = rooms || property.rooms;
     property.amenities = amenities || property.amenities;
     property.images = images || property.images;
-    await property.save();
-    res.json(property);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+
 
 app.delete('/api/properties/:id', authenticateToken, async (req, res) => {
   try {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ error: 'Property not found' });
     if (property.landlordId !== req.user.id) return res.status(403).json({ error: 'Unauthorized' });
+    
     await Property.findByIdAndDelete(req.params.id);
     res.json({ message: 'Property deleted' });
   } catch (error) {
@@ -182,6 +180,7 @@ app.delete('/api/properties/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// HEALTH CHECK
 app.get('/', (req, res) => res.json({ message: 'Roomivo API is running', status: 'ok' }));
 app.get('/api/health', (req, res) => res.json({ status: '✅ Running' }));
 
@@ -190,17 +189,23 @@ httpServer.listen(PORT, () => {
   console.log(`🚀 Backend running on http://localhost:${PORT}`);
 });
 
+// ============================================
+// MESSAGING ROUTES
+// ============================================
+
+// Create message schema
 const messageSchema = new mongoose.Schema({
   tenantId: String,
   landlordId: String,
   propertyId: String,
   message: String,
-  senderRole: String,
+  senderRole: String, // 'tenant' or 'landlord'
   createdAt: { type: Date, default: Date.now }
 });
 
 const Message = mongoose.model('Message', messageSchema);
 
+// Send message
 app.post('/api/messages', authenticateToken, async (req, res) => {
   try {
     const { tenantId, landlordId, propertyId, message } = req.body;
@@ -218,10 +223,12 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
   }
 });
 
+// Get conversation between tenant and landlord for a property
 app.get('/api/messages/:propertyId/:otherUserId', authenticateToken, async (req, res) => {
   try {
     const { propertyId, otherUserId } = req.params;
     const userId = req.user.id;
+
     const messages = await Message.find({
       propertyId,
       $or: [
@@ -229,18 +236,23 @@ app.get('/api/messages/:propertyId/:otherUserId', authenticateToken, async (req,
         { tenantId: otherUserId, landlordId: userId }
       ]
     }).sort({ createdAt: 1 });
+
     res.json(messages);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// Get all conversations for a user
 app.get('/api/messages/conversations', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
+    
     const messages = await Message.find({
       $or: [{ tenantId: userId }, { landlordId: userId }]
     }).sort({ createdAt: -1 });
+
+    // Group by property and other user
     const conversations = {};
     messages.forEach(msg => {
       const otherUserId = msg.tenantId === userId ? msg.landlordId : msg.tenantId;
@@ -255,8 +267,10 @@ app.get('/api/messages/conversations', authenticateToken, async (req, res) => {
         };
       }
     });
+
     res.json(Object.values(conversations));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
