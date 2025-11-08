@@ -1,5 +1,8 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "client/dist",
-  "rootDirectory": "client"
+  "projects": [
+    {
+      "name": "roomivo-frontend",
+      "rootDirectory": "client"
+    }
+  ]
 }
