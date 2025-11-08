@@ -1,0 +1,72 @@
+.image-upload-container {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.image-upload-container h3 {
+  margin-top: 0;
+}
+
+.upload-area {
+  margin-bottom: 20px;
+}
+
+.upload-label {
+  display: block;
+  padding: 40px;
+  text-align: center;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #f9f9f9;
+  transition: all 0.3s;
+}
+
+.upload-label:hover {
+  border-color: #007bff;
+  background: #f0f7ff;
+}
+
+.file-input {
+  display: none;
+}
+
+.images-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.image-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.image-item img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.3s;
+}
+
+.remove-btn:hover {
+  background: rgba(255, 0, 0, 1);
+}
